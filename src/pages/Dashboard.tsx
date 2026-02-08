@@ -1,37 +1,49 @@
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ShoppingCart, DollarSign, Calendar, CheckSquare, ArrowRight } from 'lucide-react';
-import { loadProfile, nextLevelRequirement } from '../utils/gamification';
 
 const Dashboard = () => {
-  const shoppingItems: Array<{ completed?: boolean }> = JSON.parse(localStorage.getItem('shopping-items') || '[]');
-  const expenses: Array<{ date?: string; amount?: number }> = JSON.parse(localStorage.getItem('expenses') || '[]');
-  const events: Array<{ date?: string }> = JSON.parse(localStorage.getItem('events') || '[]');
-  const tasks: Array<{ completed?: boolean }> = JSON.parse(localStorage.getItem('tasks') || '[]');
-
-  const currentMonth = new Date().toISOString().slice(0, 7);
-  const monthExpenses = expenses
-    .filter((e) => (e.date || '').startsWith(currentMonth))
-    .reduce((sum, e) => sum + (e.amount || 0), 0);
-
-  const futureEvents = events.filter((e) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return e.date ? new Date(e.date) >= today : false;
+  const [stats, setStats] = useState({
+    shoppingCount: 0,
+    monthExpenses: 0,
+    eventsCount: 0,
+    tasksCount: 0
   });
 
-  const pendingTasks = tasks.filter((t) => !t.completed);
-  const pendingShopping = shoppingItems.filter((i) => !i.completed);
+  const [greeting, setGreeting] = useState('');
 
-  const stats = {
-    shoppingCount: pendingShopping.length,
-    monthExpenses,
-    eventsCount: futureEvents.length,
-    tasksCount: pendingTasks.length,
-  };
+  useEffect(() => {
+    const shoppingItems = JSON.parse(localStorage.getItem('shopping-items') || '[]');
+    const expenses = JSON.parse(localStorage.getItem('expenses') || '[]');
+    const events = JSON.parse(localStorage.getItem('events') || '[]');
+    const tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
 
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Buenos días' : hour < 18 ? 'Buenas tardes' : 'Buenas noches';
-  const profile = loadProfile();
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    const monthExpenses = expenses
+      .filter((e: any) => e.date.startsWith(currentMonth))
+      .reduce((sum: number, e: any) => sum + e.amount, 0);
+
+    const futureEvents = events.filter((e: any) => {
+       const today = new Date();
+       today.setHours(0, 0, 0, 0);
+       return new Date(e.date) >= today;
+    });
+
+    const pendingTasks = tasks.filter((t: any) => !t.completed);
+    const pendingShopping = shoppingItems.filter((i: any) => !i.completed);
+
+    setStats({
+      shoppingCount: pendingShopping.length,
+      monthExpenses,
+      eventsCount: futureEvents.length,
+      tasksCount: pendingTasks.length
+    });
+
+    const hour = new Date().getHours();
+    if (hour < 12) setGreeting('Buenos días');
+    else if (hour < 18) setGreeting('Buenas tardes');
+    else setGreeting('Buenas noches');
+  }, []);
 
   const cards = [
     {
@@ -80,25 +92,6 @@ const Dashboard = () => {
         </h1>
         <p className="text-slate-500 text-lg">Aquí tienes el resumen de actividad de tu hogar hoy.</p>
       </header>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
-          <p className="text-sm text-slate-500 mb-2">Nivel</p>
-          <p className="text-3xl font-bold text-slate-800">{profile.level}</p>
-        </div>
-        <div className="md:col-span-2 bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
-          <p className="text-sm text-slate-500 mb-2">Experiencia</p>
-          <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-indigo-600 rounded-full transition-all"
-              style={{ width: `${Math.min(100, Math.round((profile.xp / nextLevelRequirement(profile.level)) * 100))}%` }}
-            />
-          </div>
-          <div className="mt-2 text-xs text-slate-500">
-            {profile.xp} / {nextLevelRequirement(profile.level)} XP
-          </div>
-        </div>
-      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {cards.map((card, index) => {
